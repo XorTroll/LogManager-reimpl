@@ -48,6 +48,7 @@ void __appInit(void) {
     sm::DoWithSession([&]() {
         R_ABORT_UNLESS(pminfoInitialize());
         R_ABORT_UNLESS(fsInitialize());
+        R_ABORT_UNLESS(pscmInitialize());
     });
 
     R_ABORT_UNLESS(fs::MountSdCard("sdmc"));
@@ -57,6 +58,7 @@ void __appInit(void) {
 void __appExit(void) {
     /* Cleanup services. */
     fs::Unmount("sdmc");
+    pscmExit();
     fsExit();
     pminfoExit();
 }
@@ -76,6 +78,49 @@ namespace {
     constexpr size_t NumServers = 1;
     sf::hipc::ServerManager<NumServers, ServerOptions, LmMaxSessions> g_server_manager;
 
+    psc::PmModule g_pm_module;
+    os::WaitableHolderType g_module_waitable_holder;
+
+}
+
+namespace ams::lm {
+
+    void Process() {
+        /* Get our psc:m module to handle requests. */
+        R_ABORT_UNLESS(g_pm_module.Initialize(psc::PmModuleId_Lm, nullptr, 0, os::EventClearMode_ManualClear));
+        os::InitializeWaitableHolder(std::addressof(g_module_waitable_holder), g_pm_module.GetEventPointer()->GetBase());
+        os::SetWaitableHolderUserData(std::addressof(g_module_waitable_holder), static_cast<uintptr_t>(psc::PmModuleId_Lm));
+        g_server_manager.AddUserWaitableHolder(std::addressof(g_module_waitable_holder));
+        
+        psc::PmState pm_state;
+        psc::PmFlagSet pm_flags;
+        while(true) {
+            auto *signaled_holder = g_server_manager.WaitSignaled();
+            if(signaled_holder != std::addressof(g_module_waitable_holder)) {
+                R_ABORT_UNLESS(g_server_manager.Process(signaled_holder));
+            }
+            else {
+                g_pm_module.GetEventPointer()->Clear();
+                if(R_SUCCEEDED(g_pm_module.GetRequest(std::addressof(pm_state), std::addressof(pm_flags)))) {
+                    switch(pm_state) {
+                        case psc::PmState_Awake:
+                        case psc::PmState_ReadyAwaken:
+                            // Stream::EnableFsAccess(true);
+                            break;
+                        case psc::PmState_ReadySleep:
+                        case psc::PmState_ReadyShutdown:
+                            // Stream::EnableFsAccess(false);
+                            break;
+                        default:
+                            break;
+                    }
+                    R_ABORT_UNLESS(g_pm_module.Acknowledge(pm_state, ResultSuccess()));
+                }
+                g_server_manager.AddUserWaitableHolder(signaled_holder);
+            }
+        }
+    }
+
 }
 
 int main(int argc, char **argv) {
@@ -87,7 +132,7 @@ int main(int argc, char **argv) {
     R_ABORT_UNLESS(g_server_manager.RegisterServer<lm::LogService>(LmServiceName, LmMaxSessions));
  
     /* Loop forever, servicing our services. */
-    g_server_manager.LoopProcess();
+    lm::Process();
  
     return 0;
 }
