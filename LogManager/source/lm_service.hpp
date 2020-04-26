@@ -17,6 +17,9 @@ namespace ams::lm {
         private:
             u64 program_id;
             LogDestination destination;
+            std::vector<impl::LogPacket> queued_packets;
+
+            void WriteAndClearQueuedPackets();
 
         public:
             Logger(u64 program_id) : program_id(program_id), destination(LogDestination::TMA) {}

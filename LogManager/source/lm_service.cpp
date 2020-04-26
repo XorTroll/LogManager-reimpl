@@ -2,9 +2,25 @@
 
 namespace ams::lm {
 
+    void Logger::WriteAndClearQueuedPackets() {
+        impl::WriteLogPackets(this->queued_packets, this->program_id);
+        this->queued_packets.clear();
+    }
+
     void Logger::Log(const sf::InAutoSelectBuffer &buf) {
         auto packet = impl::ParseLogPacket(buf.GetPointer(), buf.GetSize());
-        impl::WriteLogPacket(packet, this->program_id);
+        /* Check if there's a queue already started. */
+        const bool has_queued_packets = !this->queued_packets.empty();
+        /* Initially always push the packet. */
+        this->queued_packets.push_back(packet);
+        if(has_queued_packets && packet.header.IsTail()) {
+            /* This is the final packet of the queue - write and clear it. */
+            this->WriteAndClearQueuedPackets();
+        }
+        else if(!has_queued_packets && !packet.header.IsHead()) {
+            /* No head flag and queue not started, so just log the packet and don't start a queue. */
+            this->WriteAndClearQueuedPackets();
+        }
     }
 
     /* TODO: use the destination value for something :P */

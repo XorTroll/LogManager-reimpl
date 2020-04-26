@@ -26,13 +26,28 @@ namespace ams::lm::impl {
         Fatal = 4,
     };
 
+    enum LogPacketFlags : u8 {
+        LogPacketFlags_Head = BIT(0),
+        LogPacketFlags_Tail = BIT(1),
+    };
+
     struct LogPacketHeader {
         u64 process_id;
         u64 thread_id;
-        u8 pad[2];
+        u8 flags;
+        u8 pad;
         u8 severity;
         u8 verbosity;
         u32 payload_size;
+
+        inline constexpr bool IsHead() {
+            return this->flags & LogPacketFlags_Head;
+        }
+
+        inline constexpr bool IsTail() {
+            return this->flags & LogPacketFlags_Tail;
+        }
+
     } PACKED;
     static_assert(sizeof(LogPacketHeader) == 0x18, "LogPacketHeader");
 
@@ -47,17 +62,15 @@ namespace ams::lm::impl {
     struct LogDataChunkType {
         LogDataChunkTypeHeader header;
         T value;
-        /* TODO: also check if non-string types are valid/invalid? */
-    } PACKED;
 
-    /* Since the length is stored as a single byte, the string will never be larger than 0xFF */
-    struct LogDataChunkStringType : public LogDataChunkType<char[UINT8_MAX + 1]> {
-        
         inline constexpr bool IsEmpty() {
             return this->header.chunk_length == 0;
         }
 
     } PACKED;
+
+    /* Since the length is stored as a single byte, the string will never be larger than 0xFF */
+    struct LogDataChunkStringType : public LogDataChunkType<char[UINT8_MAX + 1]> {};
 
     /* Actual chunk base types. */
 
@@ -159,6 +172,9 @@ namespace ams::lm::impl {
     }
 
     void SetCanAccessFs(bool can_access);
-    void WriteLogPacket(LogPacket packet, u64 program_id);
+
+    /* TODO: is it just two separate packets, or there might be more of them? */
+
+    void WriteLogPackets(std::vector<LogPacket> &packet_list, u64 program_id);
 
 }
