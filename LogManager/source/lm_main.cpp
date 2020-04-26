@@ -105,11 +105,11 @@ namespace ams::lm {
                     switch(pm_state) {
                         case psc::PmState_Awake:
                         case psc::PmState_ReadyAwaken:
-                            // Stream::EnableFsAccess(true);
+                            impl::SetCanAccessFs(true);
                             break;
                         case psc::PmState_ReadySleep:
                         case psc::PmState_ReadyShutdown:
-                            // Stream::EnableFsAccess(false);
+                            impl::SetCanAccessFs(false);
                             break;
                         default:
                             break;

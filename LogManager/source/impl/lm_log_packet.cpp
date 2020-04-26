@@ -3,7 +3,23 @@
 
 namespace ams::lm::impl {
 
+    namespace {
+
+        bool can_access_fs = true;
+        os::Mutex fs_access_lock(false);
+
+    }
+
+    void SetCanAccessFs(bool can_access) {
+        std::scoped_lock lk(fs_access_lock);
+        can_access_fs = can_access;
+    }
+
     void WriteLogPacket(LogPacket packet, u64 program_id) {
+        std::scoped_lock lk(fs_access_lock);
+        if(!can_access_fs) {
+            return;
+        }
         ScopedLogFile log_file;
         log_file.WriteFormat("\n");
         log_file.WriteFormat("/----------------------------------------------------------------------------------------------------\\\n");

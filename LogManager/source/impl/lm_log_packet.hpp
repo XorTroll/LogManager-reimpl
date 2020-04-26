@@ -158,6 +158,7 @@ namespace ams::lm::impl {
         return packet;
     }
 
+    void SetCanAccessFs(bool can_access);
     void WriteLogPacket(LogPacket packet, u64 program_id);
 
 }
