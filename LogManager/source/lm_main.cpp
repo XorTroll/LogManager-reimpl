@@ -1,4 +1,4 @@
-#include <lm/lm_ILogService.hpp>
+#include "lm_service.hpp"
 
 extern "C" {
 
@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
     AMS_ASSERT(os::GetThreadPriority(os::GetCurrentThread()) == -18);
 
     /* Add service to manager. */
-    R_ABORT_UNLESS(g_server_manager.RegisterServer<lm::ILogService>(LmServiceName, LmMaxSessions));
+    R_ABORT_UNLESS(g_server_manager.RegisterServer<lm::LogService>(LmServiceName, LmMaxSessions));
  
     /* Loop forever, servicing our services. */
     g_server_manager.LoopProcess();
