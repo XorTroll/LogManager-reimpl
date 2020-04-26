@@ -22,15 +22,8 @@ namespace ams::lm {
             Logger(u64 program_id) : program_id(program_id), destination(LogDestination::TMA) {}
 
         private:
-            void Log(const sf::InAutoSelectBuffer &buf) {
-                auto packet = impl::ParseLogPacket(buf.GetPointer(), buf.GetSize());
-                impl::WriteLogPacket(packet, this->program_id);
-            }
-
-            /* TODO: use the destination value for something :P */
-            void SetDestination(LogDestination destination) {
-                this->destination = destination;
-            }
+            void Log(const sf::InAutoSelectBuffer &buf);
+            void SetDestination(LogDestination destination);
 
         public:
             DEFINE_SERVICE_DISPATCH_TABLE {
@@ -47,13 +40,7 @@ namespace ams::lm {
             };
 
         private:
-            void OpenLogger(const sf::ClientProcessId &client_pid, sf::Out<std::shared_ptr<Logger>> out_logger) {
-                u64 program_id = 0;
-                /* TODO: shall we check the Result here? */
-                pminfoGetProgramId(&program_id, static_cast<u64>(client_pid.GetValue()));
-                auto logger = std::make_shared<Logger>(program_id);
-                out_logger.SetValue(std::move(logger));
-            }
+            void OpenLogger(const sf::ClientProcessId &client_pid, sf::Out<std::shared_ptr<Logger>> out_logger);
 
         public:
             DEFINE_SERVICE_DISPATCH_TABLE {
