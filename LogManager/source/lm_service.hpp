@@ -1,10 +1,10 @@
 
 #pragma once
-#include "lm_types.hpp"
-#include "impl/lm_log_packet.hpp"
-#include "impl/lm_scoped_log_file.hpp"
+#include "stratosphere/lm.hpp"
 
 namespace ams::lm {
+
+    static constexpr const char LogsDirectory[] = "sdmc:/atmosphere/debug_logs";
 
     class Logger : public sf::IServiceObject {
 
@@ -18,11 +18,15 @@ namespace ams::lm {
             u64 program_id;
             LogDestination destination;
             std::vector<impl::LogPacket> queued_packets;
+            char log_path[FS_MAX_PATH];
 
             void WriteAndClearQueuedPackets();
-
         public:
-            Logger(u64 program_id) : program_id(program_id), destination(LogDestination::TMA) {}
+            Logger(u64 program_id) : program_id(program_id), destination(LogDestination::TMA), queued_packets(), log_path() {
+                /* Ensure that the logs directory exists. */
+                fs::CreateDirectory(LogsDirectory);
+                sprintf(this->log_path, "%s/%016lX.log", LogsDirectory, program_id);
+            }
 
         private:
             void Log(const sf::InAutoSelectBuffer &buf);

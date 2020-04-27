@@ -131,7 +131,7 @@ namespace ams::lm {
 
 int main(int argc, char **argv) {
     /* Set thread name. */
-    os::SetThreadNamePointer(os::GetCurrentThread(), "nn.lm.IpcServer");
+    os::SetThreadNamePointer(os::GetCurrentThread(), "ams.lm.IpcServer");
     AMS_ASSERT(os::GetThreadPriority(os::GetCurrentThread()) == -18);
 
     /* Add service to manager. */

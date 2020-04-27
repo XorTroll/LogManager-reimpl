@@ -1,4 +1,4 @@
-#include "lm_scoped_log_file.hpp"
+#include "stratosphere/lm/impl/lm_scoped_log_file.hpp"
 
 namespace ams::lm::impl {
 

@@ -3,7 +3,7 @@
 namespace ams::lm {
 
     void Logger::WriteAndClearQueuedPackets() {
-        impl::WriteLogPackets(this->queued_packets, this->program_id, this->destination);
+        impl::WriteLogPackets(this->log_path, this->queued_packets, this->program_id, this->destination);
         this->queued_packets.clear();
     }
 

@@ -1,5 +1,5 @@
-#include "lm_log_packet.hpp"
-#include "lm_scoped_log_file.hpp"
+#include "stratosphere/lm/impl/lm_log_packet.hpp"
+#include "stratosphere/lm/impl/lm_scoped_log_file.hpp"
 
 namespace ams::lm::impl {
 
@@ -15,7 +15,7 @@ namespace ams::lm::impl {
         can_access_fs = can_access;
     }
 
-    void WriteLogPackets(std::vector<LogPacket> &packet_list, u64 program_id, LogDestination destination) {
+    void WriteLogPackets(const char *log_path, std::vector<LogPacket> &packet_list, u64 program_id, LogDestination destination) {
         std::scoped_lock lk(fs_access_lock);
         if(!can_access_fs) {
             /* Only write log if we can access fs. */
@@ -29,7 +29,7 @@ namespace ams::lm::impl {
         /* For everything except the text log, use the first/head packet. */
         auto &head_packet = packet_list.front();
         const bool is_single_packet = packet_list.size() == 1;
-        ScopedLogFile log_file;
+        ScopedLogFile log_file(log_path);
         log_file.WriteFormat("\n");
         log_file.WriteFormat("/----------------------------------------------------------------------------------------------------\\\n");
         log_file.WriteFormat("|\n");

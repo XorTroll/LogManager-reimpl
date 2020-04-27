@@ -179,6 +179,6 @@ namespace ams::lm::impl {
     }
 
     void SetCanAccessFs(bool can_access);
-    void WriteLogPackets(std::vector<LogPacket> &packet_list, u64 program_id, LogDestination destination);
+    void WriteLogPackets(const char *log_path, std::vector<LogPacket> &packet_list, u64 program_id, LogDestination destination);
 
 }
