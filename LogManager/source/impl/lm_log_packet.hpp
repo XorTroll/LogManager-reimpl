@@ -1,6 +1,7 @@
 
 #pragma once
 #include <stratosphere.hpp>
+#include "../lm_types.hpp"
 
 namespace ams::lm::impl {
 
@@ -41,15 +42,17 @@ namespace ams::lm::impl {
         u32 payload_size;
 
         inline constexpr bool IsHead() {
+            /* Head -> a packet list is being sent, with this packet being the initial one. */
             return this->flags & LogPacketFlags_Head;
         }
 
         inline constexpr bool IsTail() {
+            /* Tail -> this is the final packet of the packet list. */
             return this->flags & LogPacketFlags_Tail;
         }
 
     } PACKED;
-    static_assert(sizeof(LogPacketHeader) == 0x18, "LogPacketHeader");
+    static_assert(sizeof(LogPacketHeader) == 0x18, "LogPacketHeader definition");
 
     /* Log data chunk base type. */
 
@@ -64,6 +67,7 @@ namespace ams::lm::impl {
         T value;
 
         inline constexpr bool IsEmpty() {
+            /* If it's not present, its length will not be set. */
             return this->header.chunk_length == 0;
         }
 
@@ -116,6 +120,7 @@ namespace ams::lm::impl {
         auto chunk_str_buf = reinterpret_cast<const char*>(chunk_buf + sizeof(LogDataChunkTypeHeader));
 
         /* Zero the string and copy it from the log buffer. */
+        /* This chunk type can't be directly read like the rest, since the string size isn't fixed like with the other types. */
         __builtin_memset(type.value, 0, sizeof(type.value));
         strncpy(type.value, chunk_str_buf, chunk_header.chunk_length);
         return type;
@@ -128,8 +133,10 @@ namespace ams::lm::impl {
         auto payload_buf = buf8 + sizeof(LogPacketHeader);
         size_t offset = 0;
         while(offset < packet.header.payload_size) {
+            /* Each chunk data consists on: u8 id, u8 length, u8 data[length]; */
             auto chunk_buf = payload_buf + offset;
             auto chunk_header = *reinterpret_cast<const LogDataChunkTypeHeader*>(chunk_buf);
+            /* Parse the chunk depending on the type (strings require special parsing) */
             switch(static_cast<LogDataChunkKey>(chunk_header.key)) {
                 case LogDataChunkKey::SessionBegin:
                     packet.payload.session_begin = *reinterpret_cast<const LogDataChunkSessionBeginType*>(chunk_buf);
@@ -172,9 +179,6 @@ namespace ams::lm::impl {
     }
 
     void SetCanAccessFs(bool can_access);
-
-    /* TODO: is it just two separate packets, or there might be more of them? */
-
-    void WriteLogPackets(std::vector<LogPacket> &packet_list, u64 program_id);
+    void WriteLogPackets(std::vector<LogPacket> &packet_list, u64 program_id, LogDestination destination);
 
 }

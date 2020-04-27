@@ -3,7 +3,7 @@
 namespace ams::lm {
 
     void Logger::WriteAndClearQueuedPackets() {
-        impl::WriteLogPackets(this->queued_packets, this->program_id);
+        impl::WriteLogPackets(this->queued_packets, this->program_id, this->destination);
         this->queued_packets.clear();
     }
 
@@ -21,16 +21,16 @@ namespace ams::lm {
             /* No head flag and queue not started, so just log the packet and don't start a queue. */
             this->WriteAndClearQueuedPackets();
         }
+        /* Otherwise, the packet is a regular packet of a list, so push it and continue. */
     }
 
-    /* TODO: use the destination value for something :P */
     void Logger::SetDestination(LogDestination destination) {
         this->destination = destination;
     }
 
     void LogService::OpenLogger(const sf::ClientProcessId &client_pid, sf::Out<std::shared_ptr<Logger>> out_logger) {
         u64 program_id = 0;
-        /* TODO: shall we check the Result here? */
+        /* Apparently lm succeeds on many/all commands, so we will succeed on them too. */
         pminfoGetProgramId(&program_id, static_cast<u64>(client_pid.GetValue()));
         auto logger = std::make_shared<Logger>(program_id);
         out_logger.SetValue(std::move(logger));

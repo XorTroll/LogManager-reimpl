@@ -13,6 +13,7 @@ namespace ams::lm::impl {
 
     void ScopedLogFile::WriteString(const char *str) {
         std::scoped_lock lk(g_log_lock);
+
         this->Write(str, std::strlen(str));
     }
 
@@ -32,6 +33,8 @@ namespace ams::lm::impl {
     }
 
     void ScopedLogFile::Write(const void *data, size_t size) {
+        std::scoped_lock lk(g_log_lock);
+
         /* If we're not open, we can't write. */
         if (!this->IsOpen()) {
             return;

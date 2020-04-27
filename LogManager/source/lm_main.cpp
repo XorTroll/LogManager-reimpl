@@ -22,7 +22,8 @@ namespace ams {
 
     namespace result {
 
-        bool CallFatalOnResultAssertion = true;
+        /* Fatal is launched way later after we are launched, so disable this. */
+        bool CallFatalOnResultAssertion = false;
 
     }
 
@@ -45,6 +46,7 @@ void __libnx_initheap(void) {
 void __appInit(void) {
     hos::InitializeForStratosphere();
 
+    /* Initialize services. */
     sm::DoWithSession([&]() {
         R_ABORT_UNLESS(pminfoInitialize());
         R_ABORT_UNLESS(fsInitialize());
@@ -64,6 +66,8 @@ void __appExit(void) {
 }
 
 namespace {
+
+    /* TODO: this domain/domain object amounts work fine, but which ones does N's LogManager actually use? */
 
     struct ServerOptions {
         static constexpr size_t PointerBufferSize = 0;
@@ -85,7 +89,7 @@ namespace {
 
 namespace ams::lm {
 
-    void Process() {
+    void StartAndLoopProcess() {
         /* Get our psc:m module to handle requests. */
         R_ABORT_UNLESS(g_pm_module.Initialize(psc::PmModuleId_Lm, nullptr, 0, os::EventClearMode_ManualClear));
         os::InitializeWaitableHolder(std::addressof(g_module_waitable_holder), g_pm_module.GetEventPointer()->GetBase());
@@ -105,10 +109,12 @@ namespace ams::lm {
                     switch(pm_state) {
                         case psc::PmState_Awake:
                         case psc::PmState_ReadyAwaken:
+                            /* Awake, enable logging. */
                             impl::SetCanAccessFs(true);
                             break;
                         case psc::PmState_ReadySleep:
                         case psc::PmState_ReadyShutdown:
+                            /* Sleep, disable logging. */
                             impl::SetCanAccessFs(false);
                             break;
                         default:
@@ -132,7 +138,7 @@ int main(int argc, char **argv) {
     R_ABORT_UNLESS(g_server_manager.RegisterServer<lm::LogService>(LmServiceName, LmMaxSessions));
  
     /* Loop forever, servicing our services. */
-    lm::Process();
+    lm::StartAndLoopProcess();
  
     return 0;
 }
